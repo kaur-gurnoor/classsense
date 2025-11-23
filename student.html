@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>ClassSense – Student</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f4f4f8;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      min-height: 100vh;
+      margin: 0;
+      padding: 24px 16px;
+    }
+    h1 {
+      font-size: 1.6rem;
+      margin-bottom: 8px;
+      text-align: center;
+    }
+    p {
+      text-align: center;
+      margin-bottom: 16px;
+      color: #555;
+    }
+    .card {
+      width: 100%;
+      max-width: 400px;
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+      margin-top: 8px;
+    }
+    .field {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    input {
+      flex: 1;
+      padding: 10px 12px;
+      border-radius: 999px;
+      border: 1px solid #d1d5db;
+      font-size: 0.95rem;
+    }
+    .small-btn {
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: none;
+      background: #2563eb;
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 0.9rem;
+      white-space: nowrap;
+    }
+    .small-text {
+      font-size: 0.8rem;
+      color: #6b7280;
+      margin-bottom: 8px;
+    }
+    .buttons {
+      display: none; /* hidden until code is entered */
+      flex-direction: column;
+      gap: 12px;
+      width: 100%;
+      margin-top: 16px;
+    }
+    button.big {
+      padding: 16px;
+      border: none;
+      border-radius: 999px;
+      font-size: 1.05rem;
+      cursor: pointer;
+      color: white;
+      font-weight: 600;
+      width: 100%;
+    }
+    .good { background: #22c55e; }
+    .unsure { background: #facc15; color: #111827; }
+    .lost { background: #ef4444; }
+    .message {
+      margin-top: 12px;
+      font-size: 0.9rem;
+      color: #4b5563;
+      min-height: 1.2em;
+      text-align: center;
+    }
+    .session-info {
+      font-size: 0.85rem;
+      color: #4b5563;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>ClassSense Check-In</h1>
+  <p>Enter the session code your teacher gave you.</p>
+
+  <div class="card">
+    <div class="small-text">Session Code (example: <code>ABC12</code>)</div>
+    <div class="field">
+      <input id="sessionCodeInput" placeholder="Enter code" />
+      <button class="small-btn" onclick="joinSession()">Join</button>
+    </div>
+    <div id="sessionInfo" class="session-info"></div>
+
+    <div class="buttons" id="buttons">
+      <button class="big good" onclick="sendStatus('good')">🟢 I’m Good</button>
+      <button class="big unsure" onclick="sendStatus('unsure')">🟡 I’m Unsure</button>
+      <button class="big lost" onclick="sendStatus('lost')">🔴 I’m Lost</button>
+    </div>
+
+    <div class="message" id="message"></div>
+  </div>
+
+  <!-- Firebase scripts -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyA9q1KvQQkbt_doT1Wr1SaZgfObTmy0iMs",
+      authDomain: "class-sense.firebaseapp.com",
+      databaseURL: "https://class-sense-default-rtdb.firebaseio.com",
+      projectId: "class-sense",
+      storageBucket: "class-sense.firebasestorage.app",
+      messagingSenderId: "105427520850",
+      appId: "1:105427520850:web:784ca3872b473ec33bfe8b",
+      measurementId: "G-JEQHR7MQ02"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    let currentSessionId = null;
+
+    function joinSession() {
+      const input = document.getElementById("sessionCodeInput");
+      const codeRaw = input.value.trim();
+      const messageEl = document.getElementById("message");
+      const sessionInfoEl = document.getElementById("sessionInfo");
+      const buttonsEl = document.getElementById("buttons");
+
+      if (!codeRaw) {
+        messageEl.textContent = "Please enter a session code.";
+        return;
+      }
+
+      const code = codeRaw.toUpperCase(); // normalize
+      currentSessionId = code;
+
+
+      const metaRef = db.ref("sessions/" + currentSessionId + "/meta");
+      metaRef.once("value").then((snapshot) => {
+        const meta = snapshot.val();
+        if (meta) {
+          sessionInfoEl.textContent =
+            "Joined: " +
+            (meta.courseName || "Course") +
+            " • " +
+            (meta.lessonName || "Lesson") +
+            " (" +
+            currentSessionId +
+            ")";
+        } else {
+          sessionInfoEl.textContent = "Joined session: " + currentSessionId;
+        }
+      });
+
+      buttonsEl.style.display = "flex";
+      messageEl.textContent = "";
+    }
+
+    function sendStatus(status) {
+      const messageEl = document.getElementById("message");
+
+      if (!currentSessionId) {
+        messageEl.textContent = "Enter a session code first.";
+        return;
+      }
+
+      const responsesRef = db.ref("sessions/" + currentSessionId + "/responses");
+      const newResponse = {
+        status: status,
+        timestamp: Date.now()
+      };
+
+      responsesRef.push(newResponse)
+        .then(() => {
+          messageEl.textContent = "Thanks! Your status was updated ✅";
+          setTimeout(() => { messageEl.textContent = ""; }, 2000);
+        })
+        .catch((error) => {
+          console.error(error);
+          messageEl.textContent = "Error sending response. Please try again.";
+        });
+    }
+  </script>
+</body>
+</html>
