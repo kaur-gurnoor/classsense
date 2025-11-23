@@ -1,2 +1,2 @@
 # classsense
-Real-time classroom pulse dashboard using Firebase.
+Real-time classroom feedback dashboard. 
