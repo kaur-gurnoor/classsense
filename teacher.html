@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>ClassSense – Teacher Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #020617;
+      color: #e5e7eb;
+      margin: 0;
+      min-height: 100vh;
+      padding: 24px 16px;
+      box-sizing: border-box;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 1.8rem;
+    }
+    p {
+      margin: 0 0 16px;
+      color: #9ca3af;
+    }
+    .top-card, .card {
+      background: #020617;
+      border-radius: 16px;
+      padding: 18px 20px;
+      border: 1px solid #1f2937;
+      margin-bottom: 16px;
+    }
+    .fields {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    @media (max-width: 640px) {
+      .fields {
+        grid-template-columns: 1fr;
+      }
+    }
+    label {
+      display: block;
+      font-size: 0.8rem;
+      color: #9ca3af;
+      margin-bottom: 4px;
+    }
+    input {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 999px;
+      border: 1px solid #374151;
+      background: #020617;
+      color: #e5e7eb;
+      font-size: 0.9rem;
+    }
+    .btn-primary {
+      margin-top: 4px;
+      padding: 10px 16px;
+      border-radius: 999px;
+      border: none;
+      background: #2563eb;
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+    .session-code {
+      margin-top: 8px;
+      font-size: 0.95rem;
+      color: #e5e7eb;
+    }
+    .code-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #111827;
+      border: 1px solid #1d4ed8;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      font-size: 0.85rem;
+    }
+    .meta-line {
+      font-size: 0.85rem;
+      color: #9ca3af;
+      margin-top: 4px;
+    }
+
+    .row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin: 10px 0;
+      font-size: 0.95rem;
+    }
+    .label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 999px;
+    }
+    .dot.good { background: #22c55e; }
+    .dot.unsure { background: #eab308; }
+    .dot.lost { background: #ef4444; }
+    .bar-container {
+      background: #020617;
+      border-radius: 999px;
+      height: 12px;
+      overflow: hidden;
+      margin-top: 6px;
+      border: 1px solid #1f2937;
+    }
+    .bar {
+      height: 100%;
+      width: 0;
+      transition: width 0.3s ease;
+    }
+    .bar.good { background: #22c55e; }
+    .bar.unsure { background: #eab308; }
+    .bar.lost { background: #ef4444; }
+    .small {
+      font-size: 0.8rem;
+      color: #6b7280;
+      margin-top: 10px;
+    }
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>ClassSense – Teacher Console</h1>
+    <p>Create a new live feedback session and share the code with your class.</p>
+
+    <div class="top-card">
+      <div class="fields">
+        <div>
+          <label for="teacherName">Teacher name</label>
+          <input id="teacherName" placeholder="e.g. Ms. Kaur" />
+        </div>
+        <div>
+          <label for="courseName">Course name</label>
+          <input id="courseName" placeholder="e.g. Grade 11 Physics" />
+        </div>
+        <div>
+          <label for="chapterName">Chapter / Unit</label>
+          <input id="chapterName" placeholder="e.g. Kinematics" />
+        </div>
+        <div>
+          <label for="lessonName">Lesson focus</label>
+          <input id="lessonName" placeholder="e.g. Projectile Motion Intro" />
+        </div>
+      </div>
+      <button class="btn-primary" onclick="createSession()">Create New Session</button>
+
+      <div id="sessionCodeBlock" class="session-code hidden">
+        <div>Share this code with your class:</div>
+        <div class="code-badge" id="sessionCodeDisplay">-----</div>
+        <div class="meta-line" id="sessionMetaLine"></div>
+      </div>
+    </div>
+
+    <div class="card" id="dashboardCard" class="hidden" style="display:none;">
+      <h2 style="margin-top:0; font-size:1.2rem;">Live Class Pulse</h2>
+
+      <div class="row">
+        <div class="label">
+          <span class="dot good"></span>
+          <span>Good</span>
+        </div>
+        <div><span id="goodCount">0</span> (<span id="goodPct">0</span>%)</div>
+      </div>
+      <div class="bar-container">
+        <div class="bar good" id="goodBar"></div>
+      </div>
+
+      <div class="row">
+        <div class="label">
+          <span class="dot unsure"></span>
+          <span>Unsure</span>
+        </div>
+        <div><span id="unsureCount">0</span> (<span id="unsurePct">0</span>%)</div>
+      </div>
+      <div class="bar-container">
+        <div class="bar unsure" id="unsureBar"></div>
+      </div>
+
+      <div class="row">
+        <div class="label">
+          <span class="dot lost"></span>
+          <span>Lost</span>
+        </div>
+        <div><span id="lostCount">0</span> (<span id="lostPct">0</span>%)</div>
+      </div>
+      <div class="bar-container">
+        <div class="bar lost" id="lostBar"></div>
+      </div>
+
+      <p class="small" id="summary">Create a session to start receiving responses.</p>
+    </div>
+  </div>
+
+  <!-- Firebase scripts -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyA9q1KvQQkbt_doT1Wr1SaZgfObTmy0iMs",
+      authDomain: "class-sense.firebaseapp.com",
+      databaseURL: "https://class-sense-default-rtdb.firebaseio.com",
+      projectId: "class-sense",
+      storageBucket: "class-sense.firebasestorage.app",
+      messagingSenderId: "105427520850",
+      appId: "1:105427520850:web:784ca3872b473ec33bfe8b",
+      measurementId: "G-JEQHR7MQ02"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    let currentSessionId = null;
+    let responsesRef = null;
+
+    const goodCountEl = document.getElementById("goodCount");
+    const unsureCountEl = document.getElementById("unsureCount");
+    const lostCountEl = document.getElementById("lostCount");
+
+    const goodPctEl = document.getElementById("goodPct");
+    const unsurePctEl = document.getElementById("unsurePct");
+    const lostPctEl = document.getElementById("lostPct");
+
+    const goodBar = document.getElementById("goodBar");
+    const unsureBar = document.getElementById("unsureBar");
+    const lostBar = document.getElementById("lostBar");
+
+    const summaryEl = document.getElementById("summary");
+
+    const sessionCodeBlock = document.getElementById("sessionCodeBlock");
+    const sessionCodeDisplay = document.getElementById("sessionCodeDisplay");
+    const sessionMetaLine = document.getElementById("sessionMetaLine");
+    const dashboardCard = document.getElementById("dashboardCard");
+
+    function generateSessionCode() {
+      // 5-character alphanumeric code
+      return Math.random().toString(36).substring(2, 7).toUpperCase();
+    }
+
+    function createSession() {
+      const teacherName = document.getElementById("teacherName").value.trim() || "Teacher";
+      const courseName = document.getElementById("courseName").value.trim() || "Course";
+      const chapterName = document.getElementById("chapterName").value.trim() || "";
+      const lessonName = document.getElementById("lessonName").value.trim() || "Lesson";
+
+      const code = generateSessionCode();
+      currentSessionId = code;
+
+      const metaRef = db.ref("sessions/" + currentSessionId + "/meta");
+      metaRef.set({
+        teacherName,
+        courseName,
+        chapterName,
+        lessonName,
+        createdAt: Date.now()
+      }).then(() => {
+        sessionCodeDisplay.textContent = currentSessionId;
+        sessionCodeBlock.classList.remove("hidden");
+
+        const chapterText = chapterName ? (" • " + chapterName) : "";
+        sessionMetaLine.textContent =
+          teacherName + " • " + courseName + chapterText + " • " + lessonName;
+
+        dashboardCard.style.display = "block";
+        summaryEl.textContent = "Waiting for student responses…";
+
+        startListening();
+      }).catch((err) => {
+        console.error(err);
+        summaryEl.textContent = "Error creating session. Please try again.";
+      });
+    }
+
+    function updateUI(good, unsure, lost) {
+      const total = good + unsure + lost;
+
+      goodCountEl.textContent = good;
+      unsureCountEl.textContent = unsure;
+      lostCountEl.textContent = lost;
+
+      if (total === 0) {
+        goodPctEl.textContent = 0;
+        unsurePctEl.textContent = 0;
+        lostPctEl.textContent = 0;
+
+        goodBar.style.width = "0%";
+        unsureBar.style.width = "0%";
+        lostBar.style.width = "0%";
+        summaryEl.textContent = "Waiting for student responses…";
+        return;
+      }
+
+      const goodPct = Math.round((good / total) * 100);
+      const unsurePct = Math.round((unsure / total) * 100);
+      const lostPct = Math.round((lost / total) * 100);
+
+      goodPctEl.textContent = goodPct;
+      unsurePctEl.textContent = unsurePct;
+      lostPctEl.textContent = lostPct;
+
+      goodBar.style.width = goodPct + "%";
+      unsureBar.style.width = unsurePct + "%";
+      lostBar.style.width = lostPct + "%";
+
+      if (lostPct >= 40) {
+        summaryEl.textContent = "Many students are lost. It might be a good time to pause and reteach.";
+      } else if (unsurePct >= 30) {
+        summaryEl.textContent = "Quite a few students are unsure. Consider checking for understanding.";
+      } else {
+        summaryEl.textContent = "Most students are feeling good so far.";
+      }
+    }
+
+    function startListening() {
+      if (!currentSessionId) return;
+
+      if (responsesRef) {
+        responsesRef.off();
+      }
+
+      responsesRef = db.ref("sessions/" + currentSessionId + "/responses");
+
+      responsesRef.on("value", (snapshot) => {
+        const data = snapshot.val();
+
+        let good = 0;
+        let unsure = 0;
+        let lost = 0;
+
+        if (data) {
+          Object.values(data).forEach((response) => {
+            if (response.status === "good") good++;
+            else if (response.status === "unsure") unsure++;
+            else if (response.status === "lost") lost++;
+          });
+        }
+
+        updateUI(good, unsure, lost);
+      });
+    }
+  </script>
+</body>
+</html>
